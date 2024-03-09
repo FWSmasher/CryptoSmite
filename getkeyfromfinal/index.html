@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <input type="file" name="key" id="keyfile">
+    <script>
+        const kFinalizationNeeded = "needs finalization";
+
+        async function SHA256( s ){
+            return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+        }
+        onload = async (ev)=>{
+        var digest =  await SHA256(kFinalizationNeeded);
+        var digestArray = new Uint8Array(digest);
+        self.finalKey = await crypto.subtle.importKey("raw", digestArray, {
+            name: "AES-CBC"
+        }, true, ["decrypt", "encrypt"] );
+        var fileInput = document.querySelector('input');
+        fileInput.onchange = async (ev) =>{
+            var file = fileInput.files[0];
+            if (!file) return;
+            var keyBuffer = await file.arrayBuffer();
+            var keyArray = new Uint8Array(keyBuffer);
+            var decrypted_key = await crypto.subtle.decrypt({
+                name: "AES-CBC",
+                iv: new Uint8Array(16),
+
+            }, finalKey, keyArray);
+            console.log(decrypted_key);
+        }
+        }
+    </script>
+</body>
+</html>
