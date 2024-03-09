@@ -17,11 +17,10 @@ then
     exit 0;
 fi
 bb() {
-    local font_blue="\033[94m"
-    local font_bold="\033[1m"
+    local font_blue_bold="\033[94;1m"
     local font_end="\033[0m"
 
-    echo -e "\n${font_blue}${font_bold}${1}${font_end}"
+    echo -e "\n${font_blue_bold}${1}${font_end}"
 }
 echo "Please make sure you have backed up your original RMA Shim. Any changes made here will modify the original rma shim, and there is a high chance it will break. (I recommend using tmpfs in your linux environment to modify the shim. If you have windows, WSL is an option)"
 echo "If you would like to back up your shim, please press ctrl-c within 3 seconds, backup your shim, and run this again, otherwise you are on your own."
