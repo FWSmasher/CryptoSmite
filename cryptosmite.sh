@@ -11,6 +11,8 @@ set -eE
 
 CRYPTSETUP_PATH=/usr/local/bin/cryptsetup_$(arch)
 mount -o rw /dev/sda1 /mnt/stateful_partition
+chmod +x /usr/local/bin/cryptsetup_aarch64
+chmod +x /usr/local/bin/cryptsetup_x86_64
 SCRIPT_DATE="[2024-01-28]"
 BACKUP_PAYLOAD=/mnt/stateful_partition/stateful.tar.xz
 NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
