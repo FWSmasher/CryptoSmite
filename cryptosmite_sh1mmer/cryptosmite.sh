@@ -8,6 +8,9 @@
 
 set -eE
 
+mount -o rw /dev/sda1 /mnt/stateful_partition
+chmod +x /usr/local/bin/cryptsetup_aarch64
+chmod +x /usr/local/bin/cryptsetup_x86_64
 SCRIPT_DATE="[2024-01-28]"
 BACKUP_PAYLOAD=/mnt/stateful_partition/stateful.tar.xz
 NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
@@ -119,7 +122,7 @@ echo_sensitive "Dropping encstateful key"
 key_crosencstateful > "$STATEFUL_MNT"/encrypted.needs-finalization
 
 echo_sensitive -n "Extracting backup to encstateful"
-tar -xJf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
+tar -xf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
 echo ""
 
 echo "Cleaning up"
