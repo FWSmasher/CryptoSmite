@@ -9,6 +9,7 @@
 set -eE
 
 
+CRYPTSETUP_PATH=/usr/local/bin/cryptsetup_$(arch)
 mount -o rw /dev/sda1 /mnt/stateful_partition
 SCRIPT_DATE="[2024-01-28]"
 BACKUP_PAYLOAD=/mnt/stateful_partition/stateful.tar.xz
