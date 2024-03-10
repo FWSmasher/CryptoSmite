@@ -8,6 +8,8 @@
 
 set -eE
 
+
+mount -o rw /dev/sda1 /mnt/stateful_partition
 SCRIPT_DATE="[2024-01-28]"
 BACKUP_PAYLOAD=/mnt/stateful_partition.tar.xz
 NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
