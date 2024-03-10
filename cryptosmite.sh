@@ -11,7 +11,7 @@ set -eE
 
 mount -o rw /dev/sda1 /mnt/stateful_partition
 SCRIPT_DATE="[2024-01-28]"
-BACKUP_PAYLOAD=/mnt/stateful_partition.tar.xz
+BACKUP_PAYLOAD=/mnt/stateful_partition/stateful.tar.xz
 NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
 
 [ -z "$SENSITIVE_MODE" ] && SENSITIVE_MODE=0
