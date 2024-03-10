@@ -58,7 +58,7 @@ format_part_number() {
 
 cleanup() {
 	umount "$ENCSTATEFUL_MNT" || :
-	cryptsetup close encstateful || :
+	${CRYPTSETUP_PATH} close encstateful || :
 	umount "$STATEFUL_MNT" || :
 	trap - EXIT INT
 }
@@ -110,7 +110,7 @@ echo_sensitive "Setting up encstateful"
 truncate -s "$NEW_ENCSTATEFUL_SIZE" "$STATEFUL_MNT"/encrypted.block
 ENCSTATEFUL_KEY=$(mktemp)
 key_ecryptfs > "$ENCSTATEFUL_KEY"
-cryptsetup open --type plain --cipher aes-cbc-essiv:sha256 --key-size 256 --key-file "$ENCSTATEFUL_KEY" "$STATEFUL_MNT"/encrypted.block encstateful
+${CRYPTSETUP_PATH} open --type plain --cipher aes-cbc-essiv:sha256 --key-size 256 --key-file "$ENCSTATEFUL_KEY" "$STATEFUL_MNT"/encrypted.block encstateful
 
 echo_sensitive "Wiping and mounting encstateful"
 mkfs.ext4 -F /dev/mapper/encstateful >/dev/null 2>&1
