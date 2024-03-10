@@ -122,7 +122,7 @@ echo_sensitive "Dropping encstateful key"
 key_crosencstateful > "$STATEFUL_MNT"/encrypted.needs-finalization
 
 echo_sensitive -n "Extracting backup to encstateful"
-tar -xJf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
+tar -xf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
 echo ""
 
 echo "Cleaning up"
