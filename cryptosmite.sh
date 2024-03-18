@@ -8,8 +8,13 @@
 
 set -eE
 
+
+CRYPTSETUP_PATH=/usr/local/bin/cryptsetup_$(arch)
+mount -o rw /dev/sda1 /mnt/stateful_partition
+chmod +x /usr/local/bin/cryptsetup_aarch64
+chmod +x /usr/local/bin/cryptsetup_x86_64
 SCRIPT_DATE="[2024-01-28]"
-BACKUP_PAYLOAD=unenroll.tar.xz
+BACKUP_PAYLOAD=/mnt/stateful_partition/stateful.tar.xz
 NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
 
 [ -z "$SENSITIVE_MODE" ] && SENSITIVE_MODE=0
@@ -55,7 +60,7 @@ format_part_number() {
 
 cleanup() {
 	umount "$ENCSTATEFUL_MNT" || :
-	cryptsetup close encstateful || :
+	${CRYPTSETUP_PATH} close encstateful || :
 	umount "$STATEFUL_MNT" || :
 	trap - EXIT INT
 }
@@ -107,7 +112,7 @@ echo_sensitive "Setting up encstateful"
 truncate -s "$NEW_ENCSTATEFUL_SIZE" "$STATEFUL_MNT"/encrypted.block
 ENCSTATEFUL_KEY=$(mktemp)
 key_ecryptfs > "$ENCSTATEFUL_KEY"
-cryptsetup open --type plain --cipher aes-cbc-essiv:sha256 --key-size 256 --key-file "$ENCSTATEFUL_KEY" "$STATEFUL_MNT"/encrypted.block encstateful
+${CRYPTSETUP_PATH} open --type plain --cipher aes-cbc-essiv:sha256 --key-size 256 --key-file "$ENCSTATEFUL_KEY" "$STATEFUL_MNT"/encrypted.block encstateful
 
 echo_sensitive "Wiping and mounting encstateful"
 mkfs.ext4 -F /dev/mapper/encstateful >/dev/null 2>&1
@@ -119,7 +124,7 @@ echo_sensitive "Dropping encstateful key"
 key_crosencstateful > "$STATEFUL_MNT"/encrypted.needs-finalization
 
 echo_sensitive -n "Extracting backup to encstateful"
-tar -xJf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
+tar -xf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
 echo ""
 
 echo "Cleaning up"

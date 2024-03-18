@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@codedread/bitjs": "^1.2.3",
+    "@types/jszip": "^3.4.1",
+    "express": "^4.18.2",
+    "jszip": "^3.10.1"
+  }
+}
