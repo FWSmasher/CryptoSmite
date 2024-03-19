@@ -10,7 +10,7 @@ then
     echo "You need to run this script as root"
     exit
 fi
-if [ "$#" -ne 3 ]
+if [ "$#" -ne 1 ]
 then
     echo "Usage: <rma shim path>"
     exit 0;
