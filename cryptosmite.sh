@@ -243,7 +243,7 @@ if [ $UNENROLL -eq 0 ]
 then
 	echo "Backing up data!"
 	tar -czf /mnt/stateful_partition/saved.tar.gz $ENCSTATEFUL_MNT
-	echo "Successfully extracted encstateful data! DO NOT SHARE THIS WITH ANYONE that you don't know, as it may contain sensitive information. WE WILL NEVER ASK YOU FOR THIS BACKUP!"
+	echo "Successfully extracted encstateful data to /mnt/stateful_partition/saved.tar.gz on the USB! DO NOT SHARE THIS WITH ANYONE that you don't know, as it may contain sensitive information. WE WILL NEVER ASK YOU FOR THIS BACKUP!"
 fi
 
 echo_sensitive "Dropping encstateful key"
