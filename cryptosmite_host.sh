@@ -36,6 +36,8 @@ if $CGPT_PATH find ${SHIMPATH} -l usrlocal
 then
     MAKEUSRLOCAL=0
     echo "usrlocal partition exists, skipping"
+    sfdisk --part-label "$SHIMPATH" 13 "usrlocal"
+
 else
     bb "[Extending shim]"
     if [[ -b ${SHIMPATH} ]]
@@ -49,6 +51,7 @@ else
     fi
     bb "[Create usrlocal partition]"
     (echo -e "size=100M") | sfdisk "$SHIMPATH" -N 13
+    sfdisk --part-label "$SHIMPATH" 13 "usrlocal"
 fi
 
 bb "[Setting up loopfs to shim]"
