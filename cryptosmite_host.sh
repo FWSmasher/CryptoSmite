@@ -31,7 +31,7 @@ SHIMPATH=$1
 STATEFULPATH=unenroll.tar.gz
 CRYPTSETUP_PATH=$2
 MAKEUSRLOCAL=1
-CGPT_PATH="${FILE_PATH}/cgpt_$(arch)"
+CGPT_PATH="${FILE_PATH}/cgpt.$(arch)"
 if $CGPT_PATH find ${SHIMPATH} -l usrlocal 
 then
     MAKEUSRLOCAL=0
