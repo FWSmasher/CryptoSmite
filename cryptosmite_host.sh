@@ -31,8 +31,8 @@ SHIMPATH=$1
 STATEFULPATH=unenroll.tar.gz
 CRYPTSETUP_PATH=$2
 MAKEUSRLOCAL=1
-
-if grep "usrlocal" ${SHIMPATH} --max-count=1; then
+CGPT_PATH="${FILE_PATH}/cgpt$(arch)"
+if $CGPT_PATH find ${SHIMPATH} -l usrlocal then
     MAKEUSRLOCAL=0
     echo "usrlocal partition exists, skipping"
 else
@@ -76,7 +76,6 @@ mkdir "${shimmnt}/cryptsetup_root" -p
 mkdir "${shimmnt}/dev_image/" -p
 mkdir "${shimmnt}/dev_image/etc" -p
 touch "${shimmnt}/dev_image/etc/lsb-factory"
-tar -C "${shimmnt}/cryptsetup_root" -xf "${CRYPTSETUP_PATH}"
 echo "Cleaning up stateful mounts"
 umount "${shimmnt}"
 
