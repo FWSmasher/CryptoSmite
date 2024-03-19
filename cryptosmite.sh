@@ -8,7 +8,88 @@
 
 set -eE
 
+print_welcome() {
+    echo "Welcome to the CryptoSmite toolkit"
+    echo "Please look at the following options: "
+    echo "(1) Unenrollment"
+	echo "(2) Re-enrollment *not-implemented*"
+	echo "(3) Skip Devmode"
+	echo "(q) Quit"
+}
+reenroll() {
+	echo "Not implemented"
+}
+skip_devmode() {
+	clear
+	echo "This will reboot your device, please press ctrl-c within 3 seconds if you have selected the wrong option to quit the program. THIS DOESN'T FEATURE UNENROLLMENT, SELECT OPTION 1."
+	mkfs.ext4 /dev/mmcblk0p1 -F
+	mount -o loop,rw /dev/mmcblk0p1 /tmp
+	touch /tmp/.developer_mode
+	umount /tmp && sync
+	reboot
+}
+confirm_choice() {
+	# Argument 1 is the function/string to confirm. Will synchronously block and execute the function,
+	# if the user confirms. The function will decide whether it should reboot, exit, or return to the main menu. 
+	# Otherwise exits back to the main menu loop.
+	while true
+	do
+		clear
+    local should_run=
+		echo "Are you sure you want to $1? (y/n)"
+		read -p ">" should_run
+    case "$should_run" in
+      y)
+        $1
+        return
+        ;;
+      n)
+        echo "Exiting back to the main menu"
+        return
+        ;;
+      *)
+    esac
+  done
 
+}
+if [ $(id -u) -gt 0 ]
+then
+    echo "Please run $0 as root"
+    exit 0
+fi
+echo "-------------CryptoSmite------------"
+selected_choice=""
+while true
+do
+    # Decided not to refactor unenroll into a bash function, and only add new functions in function to exit pair
+    clear
+    print_welcome
+    read -p "Select choice: " -r selected_choice
+    case $(echo $selected_choice | awk '{print(tolower($0))}') in
+    1)
+        # Unenrollment past this point it will just run the code after this
+		break
+        ;;
+    2)
+        reenroll
+		exit 0
+        ;;
+    3)
+        skip_devmode
+		exit 0
+        ;;
+    q)
+        echo "Quitting now"
+        sleep 0.8
+        clear
+        exit 0
+        ;;
+    *)
+        echo "Invalid option"
+        ;;
+    esac
+	 # TO unenroll
+done
 CRYPTSETUP_PATH=/usr/local/bin/cryptsetup_$(arch)
 mount -o rw /dev/sda1 /mnt/stateful_partition
 chmod +x /usr/local/bin/cryptsetup_aarch64
