@@ -44,7 +44,7 @@ if [ -f ${SHIMPATH} ]
 then
     bb "[Truncating file for stateful]" 
     DISK_SECTOR_LAST=$(sfdisk -l -o end ${SHIMPATH} | awk '{print $1}' | sort -nr | head -n 1)
-    BUFFER=35
+    BUFFER=64
     SECTOR_SIZE=$(sfdisk -l ${SHIMPATH} | grep "Sector size" | awk '{print $4}')
     END_BYTES=$(((${DISK_SECTOR_LAST} + ${BUFFER}) * ${SECTOR_SIZE}))
     truncate -s ${END_BYTES} ${SHIMPATH}
