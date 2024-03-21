@@ -12,6 +12,10 @@ ACTION1="erase"
 ACTION2="unenroll"
 USE_BACKUP=0
 CONTINUE=0
+WIPE_ENCSTATEFUL=0
+wipe_encstateful() {
+	WIPE_ENCSTATEFUL=1
+}
 print_welcome() {
     echo "Welcome to the CryptoSmite toolkit (2024)"
     echo "Please look at the following options: "
@@ -20,6 +24,7 @@ print_welcome() {
 	echo "(3) Skip Devmode"
 	echo "(4) Restore backup (this may or may not re-enroll you, DO NOT TRUST ANY BACKUP THAT YOU FIND ON THE INTERNET, ONLY USE BACKUPS CREATED BY THE REENROLLMENT TOOLKIT)"
 	echo "	They may have keyloggers or other extensions installed, and may compromise your login info."
+	echo "(5) Wipe current encstateful without removing exploit (This is part of re-enrollment)"
 	echo "(q) Quit"
 	CONTINUE=1
 }
@@ -98,6 +103,9 @@ do
         ;;
 	4)
 		confirm_choice restore_backup
+		;;
+	5)
+		confirm_choice wipe_stateful
 		;;
     q)
         echo "Quitting now"
@@ -256,9 +264,15 @@ then
 	echo "Not restoring backup to encstateful for unenrollment, since the encstateful key has dropped, your next sesson will use the encstateful key (if you used cryptosmite before this without powerwashing)"
 	echo ""
 else
-	echo_sensitive -n "Extracting backup to encstateful"
-	tar -xf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
-	echo ""
+	if [ $WIPE_ENCSTATEFUL -eq 0 ]
+	then
+	
+		echo_sensitive -n "Extracting backup to encstateful"
+		tar -xf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
+		echo ""
+	else
+		echo "Keeping encstateful empty"
+	fi
 fi
 echo "Cleaning up"
 cleanup
