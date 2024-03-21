@@ -212,6 +212,7 @@ case "$action" in
 esac
 
 if [ ${UNENROLL} -gt 0 ]
+then
 	echo_sensitive "Wiping and mounting stateful"
 	mkfs.ext4 -F "$TARGET_PART" >/dev/null 2>&1
 else
