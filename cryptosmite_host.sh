@@ -5,7 +5,6 @@ echo "Running Cryptosmite_host"
 # Avoids adding new partitions and expanding disk image space, so we don't require larger usbs to flash ()This is no longer accurate
 FILE_PATH=$(dirname "${0}")
 source ./lib/common_minimal.sh
-STATEFUL_SIZE="350M"
 if [ $(id -u) -ne 0 ]
 then
     echo "You need to run this script as root"
@@ -13,12 +12,8 @@ then
 fi
 if [ "$#" -ne 1 ]
 then
-    echo "Usage: <rma shim path> [<stateful size>=350M]"
+    echo "Usage: <rma shim path>"
     exit 0;
-fi
-if [ -n $2 ]
-then
-    STATEFUL_SIZE=$2
 fi
 bb() {
     local font_blue_bold="\033[94;1m"
@@ -37,19 +32,6 @@ STATEFULPATH=unenroll.tar.gz
 CRYPTSETUP_PATH=$2
 MAKEUSRLOCAL=1
 CGPT_PATH="${FILE_PATH}/cgpt.$(arch)"
-echo "Deleting last stateful partition"
-sfdisk --delete ${SHIMPATH} 1
-echo -e "size=${STATEFUL_SIZE}" | sfdisk "${SHIMPATH}" -N 1 # 350M for backups 
-if [ -f ${SHIMPATH} ]
-then
-    bb "[Truncating file for stateful]" 
-    DISK_SECTOR_LAST=$(sfdisk -l -o end ${SHIMPATH} | awk '{print $1}' | sort -nr | head -n 1)
-    BUFFER=64
-    SECTOR_SIZE=$(sfdisk -l ${SHIMPATH} | grep "Sector size" | awk '{print $4}')
-    END_BYTES=$(((${DISK_SECTOR_LAST} + ${BUFFER}) * ${SECTOR_SIZE}))
-    truncate -s ${END_BYTES} ${SHIMPATH}
-fi
-
 if $CGPT_PATH find ${SHIMPATH} -l usrlocal 
 then
     MAKEUSRLOCAL=0
