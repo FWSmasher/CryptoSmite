@@ -105,7 +105,7 @@ do
 		confirm_choice restore_backup
 		;;
 	5)
-		confirm_choice wipe_stateful
+		confirm_choice wipe_encstateful
 		;;
     q)
         echo "Quitting now"
