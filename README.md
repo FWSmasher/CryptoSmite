@@ -8,3 +8,5 @@ To use this, you need to look at the instructons [here](https://docs.google.com/
 
 ## Any further questions?
 Please dm @unretained or join the [support server](https://discord.gg/vF4c99YhNQ) on discord.
+
+### WE AREN'T LIABLE NOR RESPONSIBLE FOR ANY DAMAGE/ISSUES CAUSED BY THIS EXPLOIT! DO NOT CONTACT US FOR ANY ISSUES CAUSED BY THIS EXPLOIT!
