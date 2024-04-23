@@ -1,5 +1,6 @@
 #!/bin/bash
 
+echo "hi"
 echo "Running Cryptosmite_host"
 # Thanks Mattias Nissler for the vuln https://chromium-review.googlesource.com/c/chromiumos/platform2/+/922063 :)
 # Avoids adding new partitions and expanding disk image space, so we don't require larger usbs to flash ()This is no longer accurate
