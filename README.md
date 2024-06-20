@@ -7,6 +7,6 @@ We use stateful "backups" that basically allows us to change the encrypted conte
 To use this, you need to look at the instructons [here](https://docs.google.com/presentation/d/1MciRMbDEb3RJomH2gYW9C5qRVjS4P92o2s4QepoCSgY/edit#slide=id.p).
 
 ## Any further questions?
-Please ask questions in the support server. <b>Do NOT MESSAGE @unretained.</b>
+Please ask questions in the support server. <b> @unretained is back. please ask @unretained on discord for any support.</b>
 
 ### WE AREN'T LIABLE NOR RESPONSIBLE FOR ANY DAMAGE/ISSUES CAUSED BY THIS EXPLOIT! DO NOT CONTACT US FOR ANY ISSUES CAUSED BY THIS EXPLOIT!
