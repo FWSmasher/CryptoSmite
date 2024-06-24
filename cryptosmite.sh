@@ -16,6 +16,9 @@ WIPE_ENCSTATEFUL=0
 wipe_encstateful() {
 	WIPE_ENCSTATEFUL=1
 }
+echo_sensitive() {
+    echo "$@"
+}
 print_welcome() {
     echo "Welcome to the CryptoSmite toolkit (2024)"
     echo "Please look at the following options: "
