@@ -10,6 +10,8 @@
 Run "image_tool help" for more info and a list of subcommands.
 
 To add a subcommand, just add a new SubCommand subclass to this file.
+
+not to be used unless you know what you're doing kids!
 """
 
 import argparse

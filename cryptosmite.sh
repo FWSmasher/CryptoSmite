@@ -3,7 +3,7 @@
 # cryptosmite.sh remake or something
 # by Writable and OlyB
 #
-# unenroll only for now, will add more features later
+# unenroll only for now, more features soon
 #
 
 set -eE

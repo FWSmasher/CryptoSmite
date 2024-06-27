@@ -3,6 +3,7 @@
 # **<u>We are not responsible for any problems or issues that occur on your chromebook. We are also not responsible for any trouble you face at your school or organization</u>**
 ## Files to download
 Download [stateful.tar.xz](https://drive.google.com/file/d/19-NPB9Mukn6JdHZ7FUUn4QwEKMMh85C1/view?usp=sharing) and [st.tar.xz](https://drive.google.com/file/d/1YlgNDslOIrOAQJuQ-AoL0FuE7Xve71Co/view?usp=sharing)  
+or just simply get them both [here](https://fwbasher.netlify.app/) (not affliated)
 I promise it will be in a better storage medium soon but right now its in google drive.  
 ## **GOOGLE CANNOT PATCH THIS EXPLOIT**  
 TO RECEIVE THE **FULL** PATCH ***YOU NEED TO BUY A NEW CHROMEBOOK***

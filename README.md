@@ -10,3 +10,4 @@ To use this, you need to look at the instructons [here](https://docs.google.com/
 Please ask questions in the support server. <b> @unretained is back. please ask @unretained on discord for any support.</b>
 
 ### WE AREN'T LIABLE NOR RESPONSIBLE FOR ANY DAMAGE/ISSUES CAUSED BY THIS EXPLOIT! DO NOT CONTACT US FOR ANY ISSUES CAUSED BY THIS EXPLOIT!
+### FOR THE TECHNOGICALLY CHALLENGED: IF YOUR DEVICE IS BROKEN OR IF YOU GET IN TROUBLE NOT OUR FAULT AND DON'T CONTACT US ABOUT IT

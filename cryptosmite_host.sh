@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Running Cryptosmite_host"
+echo "Running cryptosmite_host"
 # Thanks Mattias Nissler for the vuln https://chromium-review.googlesource.com/c/chromiumos/platform2/+/922063 :)
 # Avoids adding new partitions and expanding disk image space, so we don't require larger usbs to flash ()This is no longer accurate
 FILE_PATH=$(dirname "${0}")
@@ -22,7 +22,7 @@ bb() {
     echo -e "\n${font_blue_bold}${1}${font_end}"
 }
 echo "Please make sure you have backed up your original RMA Shim. Any changes made here will modify the original rma shim, and there is a high chance it will break. (I recommend using tmpfs in your linux environment to modify the shim. If you have windows, WSL is an option)"
-echo "If you would like to back up your shim, please press ctrl-c within 3 seconds, backup your shim, and run this again, otherwise you are on your own."
+echo "If you would like to back up your shim, please press ctrl-c within 3 seconds, backup your shim, and run this again, otherwise you are on your own. (no support, this is your last chance)"
 
 sleep 3
 
